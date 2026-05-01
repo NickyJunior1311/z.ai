@@ -20,7 +20,7 @@ logger = logging.getLogger("inveniq")
 # ── Anthropic client (async, with timeout) ────────────────────────────────────
 client = AsyncAnthropic(
     base_url="https://api.ilmu.ai/anthropic",
-    api_key="sk-4d730bb5cd8b2f8dcdd4c585c10a2910cbf6bccac7bc0714",
+    api_key="sk-28debfc22f35f11f8d2b734553ea8c711a8b595aaa848626",
     timeout=8.0,  # tight: Vercel Hobby kills the function at 10s total
 )
  
