@@ -1027,7 +1027,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const API_URL = "/chat";
-const MODEL     = 'glm-5.1';
+const MODEL     = 'glm-5-turbo';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STATE
@@ -1757,7 +1757,7 @@ async function runAgentic(query, msgAttachments = []) {
         model: MODEL,
         messages,
         temperature: 0.1,
-        max_tokens: 8196,
+        max_tokens: 1500,
       }),
     });
 
