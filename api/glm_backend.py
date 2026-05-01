@@ -20,7 +20,7 @@ logger = logging.getLogger("inveniq")
  
 # ── Anthropic client (async, with timeout) ────────────────────────────────────
 client = AsyncAnthropic(
-    base_url="https://api.ilmu.ai/anthropic",
+    base_url="https://api.z.ai/api/anthropic",
     api_key="7959c551678b4ff2ad679e6994d49017.4XAHAELzkqpWdutF",
     timeout=8.0,  # tight: Vercel Hobby kills the function at 10s total
 )
@@ -37,7 +37,7 @@ app.add_middleware(
 # ── Request models ────────────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
     messages: list
-    model: str = "ilmu-glm-5.1"
+    model: str = "glm-5.1"
     temperature: float = 0.1
     max_tokens: int = 8192
  
