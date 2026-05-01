@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from anthropic import AsyncAnthropic
 from duckduckgo_search import DDGS
+from mangum import Mangum
  
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -365,7 +366,11 @@ def health():
         "model": "ilmu-glm-5.1",
         "provider": "ILMU",
     }
+
+# ── Vercel ASGI handler ───────────────────────────────────────────────────────
+# Vercel's Python runtime needs an adapter to talk to FastAPI (ASGI).
+# Mangum exposes `handler` which Vercel will invoke for each request.
+handler = Mangum(app, lifespan="off")
  
 # NOTE: No `if __name__ == "__main__"` block — Vercel imports `app` directly.
 # To run locally:  uvicorn glm_backend:app --reload --port 8000
- 
