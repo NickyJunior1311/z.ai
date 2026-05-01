@@ -23,7 +23,7 @@ logger = logging.getLogger("inveniq")
 # Dashboard → Settings → Environment Variables, then redeploy.
 client = AsyncAnthropic(
     base_url="https://api.z.ai/api/anthropic",
-    api_key="REPLACE_WITH_YOUR_ZAI_API_KEY",  # ⚠️ Generate a fresh key in Z.AI dashboard. Keep this repo PRIVATE.
+    api_key="7959c551678b4ff2ad679e6994d49017.4XAHAELzkqpWdutF",  # ⚠️ Generate a fresh key in Z.AI dashboard. Keep this repo PRIVATE.
     timeout=60.0,  # Render has no per-request timeout — give GLM room to think
 )
  
