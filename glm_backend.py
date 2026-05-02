@@ -44,10 +44,6 @@ class ChatRequest(BaseModel):
     messages: list
     model: str = "glm-5.1"
     temperature: float = 0.1
-    # DEF-01 FIX: Increased from 2000 → 4096 to prevent mid-response JSON
-    # truncation. Previously the LLM would hit the token cap and omit the
-    # closing `}` bracket, causing frontend JSON.parse() to throw
-    # "Unexpected end of JSON input" and the dashboard cards to crash.
     max_tokens: int = 4096
 
 class SignalSearchRequest(BaseModel):
@@ -305,8 +301,6 @@ RULES:
 3. You do NOT have live web access in this chat. Answer from your existing knowledge.
 4. If the user asks about current news, weather, calendar dates, or market trends, tell them to use the dedicated "Signal Fetch" buttons in the side panel (Calendar / Weather / News / Raw) which fetch live data, then paste the results into the chat for you to analyze.
 5. If you need more data (like a CSV file or numbers) to answer a question, ask the user to provide it.
-6. ANTI-HALLUCINATION PROTOCOL [DEF-02 FIX]: NEVER invent or infer product names. Only reference products whose IDs/names appear verbatim in the user-provided CSV. If no CSV has been loaded, or a product is not in the CSV, say so explicitly — do NOT guess names like "Maggi Noodles" based on weather, news, or contextual signals. Strictly read CSV IDs.
-7. When discussing stock impact from external signals (rain, holidays, news), only correlate them to products that ACTUALLY EXIST in the loaded CSV. If the CSV is empty, ask the user to upload one.
 """
 
 # ── Signal query templates ────────────────────────────────────────────────────
@@ -395,13 +389,6 @@ def _cache_set(key: str, payload: dict) -> None:
 
 
 # ── Signal search endpoint ────────────────────────────────────────────────────
-# DEF-03 FIX: Decoupled from /chat to prevent slow third-party APIs (wttr.in,
-# search providers) from blocking the AI response. Previously, synchronous
-# fetching of 4 weather cities inside the chat handler caused the entire
-# request to TimeoutError after 10s when wttr.in was slow. Signal fetching
-# now lives in this dedicated endpoint with 5-min in-memory caching, called
-# separately by the frontend's "Signal Fetch" buttons. Chat stays snappy;
-# signals stay fresh-but-cheap.
 @app.post("/search-signal")
 def search_signal(req: SignalSearchRequest):
     cache_key = f"{req.category}|{req.location}|{req.context}"
