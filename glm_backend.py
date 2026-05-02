@@ -44,6 +44,10 @@ class ChatRequest(BaseModel):
     messages: list
     model: str = "glm-5.1"
     temperature: float = 0.1
+    # DEF-01 FIX: Increased from 2000 → 4096 to prevent mid-response JSON
+    # truncation. Previously the LLM would hit the token cap and omit the
+    # closing `}` bracket, causing frontend JSON.parse() to throw
+    # "Unexpected end of JSON input" and the dashboard cards to crash.
     max_tokens: int = 4096
 
 class SignalSearchRequest(BaseModel):
