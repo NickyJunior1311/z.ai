@@ -1330,9 +1330,23 @@ function processCSV(file) {
   reader.onload = e => {
     const text = e.target.result;
     const lines = text.trim().split('\n').filter(l => l.trim());
-    if (lines.length < 2) { showToast('CSV must have at least a header row and one data row.'); return; }
+    if (lines.length < 2) { showToast('CSV must have at least a header row and one data row.', 'red'); return; }
 
     const headers = parseCSVLine(lines[0]);
+
+    // ── Header validation (TD-04 / DEF-04): reject CSVs without a real header row ──
+    const validation = validateCSVHeaders(headers, lines);
+    if (!validation.ok) {
+      showToast(`❌ "${file.name}" rejected: ${validation.reason}`, 'red');
+      addAssistantMessage(buildPlainMsg(
+        `🚫 **CSV Rejected: ${file.name}**\n\n` +
+        `**Reason:** ${validation.reason}\n\n` +
+        `${validation.detail}\n\n` +
+        `**How to fix:** Open the file in Excel/Google Sheets and make sure the **first row contains column names** (e.g. \`Product ID, Product Name, Units Sold, Date\`). Then re-upload.`
+      ));
+      return;
+    }
+
     const data = lines.slice(1).map(l => parseCSVLine(l));
     const raw = lines.slice(0, 30).join('\n');
     const summary = generateDataSummary(text);
@@ -1357,6 +1371,97 @@ function processCSV(file) {
     ));
   };
   reader.readAsText(file);
+}
+
+// ── DEF-04: Validate CSV header row ───────────────────────────────────────────
+// A valid header row must:
+//   • Have at least 2 non-empty cells (single-column "lists" are ambiguous)
+//   • Contain NO purely numeric cells (numbers are data, not headers)
+//   • Contain NO date-like cells (dates are data, not headers)
+//   • Have unique cell values (duplicate column names break downstream lookups)
+//   • Not look like a typical data row (heuristic: compare types vs row 2)
+function validateCSVHeaders(headers, lines) {
+  // Rule 1: must have at least 2 columns
+  if (!headers || headers.length < 2) {
+    return {
+      ok: false,
+      reason: 'No detectable header row',
+      detail: 'The first row has fewer than 2 columns. A valid CSV header must define at least 2 named columns (e.g. `Product, Quantity`).'
+    };
+  }
+
+  // Rule 2: no empty cells in header
+  const emptyIdx = headers.findIndex(h => !h || !h.trim());
+  if (emptyIdx !== -1) {
+    return {
+      ok: false,
+      reason: 'Header row has blank cell(s)',
+      detail: `Column ${emptyIdx + 1} in the first row is empty. Every column must have a name.`
+    };
+  }
+
+  // Rule 3: no purely-numeric headers (e.g. "1,2,3,4" is data, not headers)
+  const numericHeader = headers.find(h => /^-?\d+(\.\d+)?$/.test(h.trim()));
+  if (numericHeader) {
+    return {
+      ok: false,
+      reason: 'First row looks like data, not headers',
+      detail: `Found a numeric value (\`${numericHeader}\`) in the header row. Headers should be text labels like "Product ID" or "Units Sold", not numbers.`
+    };
+  }
+
+  // Rule 4: no date-like headers
+  const dateHeader = headers.find(h => isDateLike(h.trim()));
+  if (dateHeader) {
+    return {
+      ok: false,
+      reason: 'First row looks like data, not headers',
+      detail: `Found a date-like value (\`${dateHeader}\`) in the header row. The first row should contain column names, not dates.`
+    };
+  }
+
+  // Rule 5: unique column names
+  const lower = headers.map(h => h.trim().toLowerCase());
+  const dupes = lower.filter((h, i) => lower.indexOf(h) !== i);
+  if (dupes.length > 0) {
+    return {
+      ok: false,
+      reason: 'Duplicate column names in header',
+      detail: `The column \`${dupes[0]}\` appears more than once. Each header must be unique so the AI can reference columns unambiguously.`
+    };
+  }
+
+  // Rule 6: heuristic — compare row 1 (headers) vs row 2 (first data row).
+  // If row 1 has the SAME shape as row 2 (e.g. both fully numeric, or both
+  // pure dates), the file is probably headerless.
+  if (lines.length >= 2) {
+    const row2 = parseCSVLine(lines[1]);
+    if (row2.length === headers.length) {
+      const headerNumericCount = headers.filter(h => /^-?\d+(\.\d+)?$/.test(h.trim())).length;
+      const row2NumericCount = row2.filter(c => /^-?\d+(\.\d+)?$/.test(c.trim())).length;
+      // If both rows are >=70% numeric, row 1 is probably data
+      const threshold = Math.ceil(headers.length * 0.7);
+      if (headerNumericCount >= threshold && row2NumericCount >= threshold) {
+        return {
+          ok: false,
+          reason: 'No header row detected',
+          detail: 'Both the first and second rows contain mostly numbers. This file appears to start directly with data rows. Add a header row at the top with column names.'
+        };
+      }
+    }
+  }
+
+  return { ok: true };
+}
+
+// Quick date detector — covers common formats: 2024-01-15, 15/01/2024, Jan 15 2024
+function isDateLike(s) {
+  if (!s) return false;
+  if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) return true;     // ISO
+  if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)) return true; // US/EU slash
+  if (/^\d{1,2}-\d{1,2}-\d{2,4}$/.test(s)) return true;   // dash dates
+  if (/^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(s) && /\d/.test(s)) return true;
+  return false;
 }
 
 function updateUploadZone() {
