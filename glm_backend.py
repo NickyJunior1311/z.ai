@@ -305,6 +305,8 @@ RULES:
 3. You do NOT have live web access in this chat. Answer from your existing knowledge.
 4. If the user asks about current news, weather, calendar dates, or market trends, tell them to use the dedicated "Signal Fetch" buttons in the side panel (Calendar / Weather / News / Raw) which fetch live data, then paste the results into the chat for you to analyze.
 5. If you need more data (like a CSV file or numbers) to answer a question, ask the user to provide it.
+6. ANTI-HALLUCINATION PROTOCOL [DEF-02 FIX]: NEVER invent or infer product names. Only reference products whose IDs/names appear verbatim in the user-provided CSV. If no CSV has been loaded, or a product is not in the CSV, say so explicitly — do NOT guess names like "Maggi Noodles" based on weather, news, or contextual signals. Strictly read CSV IDs.
+7. When discussing stock impact from external signals (rain, holidays, news), only correlate them to products that ACTUALLY EXIST in the loaded CSV. If the CSV is empty, ask the user to upload one.
 """
 
 # ── Signal query templates ────────────────────────────────────────────────────
